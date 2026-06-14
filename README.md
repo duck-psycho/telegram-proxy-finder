@@ -2,6 +2,8 @@
 
 Android application for finding working MTProto proxies for Telegram. The app fetches public proxy lists and verifies each one locally using `tdlib`. Thanks to this local verification, you get a list of proxies that are guaranteed to work for you.
 
+You can download the latest version of the application in the "[Releases](https://github.com/duck-psycho/telegram-proxy-finder/releases)" section.
+
 ## Screenshots
 
 <img width="400" src="./images/screenshot.jpg">
