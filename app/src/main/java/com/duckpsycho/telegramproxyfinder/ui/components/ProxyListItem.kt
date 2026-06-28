@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.duckpsycho.telegramproxyfinder.R
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
+import com.duckpsycho.telegramproxyfinder.ui.theme.pingIndicatorColor
 import com.duckpsycho.telegramproxyfinder.ui.util.secretPreview
 import com.duckpsycho.telegramproxyfinder.ui.util.toTelegramProxyUri
 
@@ -52,6 +53,7 @@ fun ProxyListItem(
     val noTgAppMessage = stringResource(R.string.no_tg_app)
     val copiedMessage = stringResource(R.string.copied_to_clipboard)
     val scheme = MaterialTheme.colorScheme
+    val pingColor = pingIndicatorColor(proxy.pingMs)
     val proxyUri = proxy.toTelegramProxyUri()
     val copyProxyLink = {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -90,14 +92,14 @@ fun ProxyListItem(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.22f)),
+                        .background(pingColor.copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = proxy.pingMs.toString(),
                             style = MaterialTheme.typography.titleSmall,
-                            color = scheme.primary,
+                            color = pingColor,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                         )

@@ -15,3 +15,13 @@ val TelegramNightSurface = Color(0xFF17212B)
 val TelegramNightBlue = Color(0xFF5288C1)
 val TelegramNightTextSecondary = Color(0xFF8393A7)
 val TelegramNightOutline = Color(0xFF2B5278)
+
+val PingGood = Color(0xFF43A047)
+val PingMedium = TelegramBlue
+val PingPoor = Color(0xFFE53935)
+
+fun pingIndicatorColor(pingMs: Long): Color = when {
+    pingMs <= 200 -> PingGood
+    pingMs <= 300 -> PingMedium
+    else -> PingPoor
+}
