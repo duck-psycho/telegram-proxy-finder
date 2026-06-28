@@ -7,6 +7,7 @@ import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
 import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
 import com.duckpsycho.telegramproxyfinder.domain.parser.MtProtoProxyParser
+import com.duckpsycho.telegramproxyfinder.domain.parser.SecretDomainParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -83,6 +84,7 @@ class ProxySearchService(
                                     port = proxy.port,
                                     secret = proxy.secret.trim(),
                                     pingMs = pingMs,
+                                    secretDomain = SecretDomainParser.parse(proxy.secret),
                                 )
                                 val shouldEmit = foundMutex.withLock {
                                     val key = entry.identityKey()

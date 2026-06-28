@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import com.duckpsycho.telegramproxyfinder.R
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
 import com.duckpsycho.telegramproxyfinder.ui.theme.pingIndicatorColor
-import com.duckpsycho.telegramproxyfinder.ui.util.secretPreview
 import com.duckpsycho.telegramproxyfinder.ui.util.toTelegramProxyUri
 
 @Composable
@@ -126,15 +125,17 @@ fun ProxyListItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = secretPreview(proxy.secret),
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    proxy.secretDomain?.let { domain ->
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = stringResource(R.string.sni, domain),
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
             Row(

@@ -5,4 +5,5 @@ data class WorkingMtProtoProxy(
     override val port: Int,
     override val secret: String,
     val pingMs: Long,
+    val secretDomain: String? = null,
 ) : MtProtoProxyEndpoint
