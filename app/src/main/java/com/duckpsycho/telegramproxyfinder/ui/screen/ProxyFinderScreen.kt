@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,8 +25,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,12 +42,14 @@ import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
 import com.duckpsycho.telegramproxyfinder.ui.ProxyFinderUiState
 import com.duckpsycho.telegramproxyfinder.ui.SearchStatus
 import com.duckpsycho.telegramproxyfinder.ui.components.ProxyListItem
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProxyFinderScreen(
     uiState: ProxyFinderUiState,
     onInfoClick: () -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -94,12 +101,34 @@ fun ProxyFinderScreen(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
                 thickness = 0.5.dp,
             )
-            ProxyList(
-                proxies = uiState.workingProxies,
+            val pullRefreshState = rememberPullToRefreshState()
+            val scope = rememberCoroutineScope()
+
+            PullToRefreshBox(
+                state = pullRefreshState,
+                isRefreshing = false,
+                onRefresh = {
+                    onRefresh()
+                    scope.launch {
+                        pullRefreshState.animateToHidden()
+                    }
+                },
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        isRefreshing = false,
+                        state = pullRefreshState,
+                    )
+                },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-            )
+            ) {
+                ProxyList(
+                    proxies = uiState.workingProxies,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 }
@@ -174,6 +203,11 @@ private fun ProxyList(
         modifier = modifier.background(MaterialTheme.colorScheme.background),
         state = listState,
     ) {
+        if (proxies.isEmpty()) {
+            item(key = "pull_refresh_placeholder") {
+                Box(modifier = Modifier.fillParentMaxSize())
+            }
+        }
         items(
             items = proxies,
             key = { it.identityKey() },

@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
                     ProxyFinderScreen(
                         uiState = uiState,
                         onInfoClick = { showInfoScreen = true },
+                        onRefresh = viewModel::refresh,
                     )
                 }
             }

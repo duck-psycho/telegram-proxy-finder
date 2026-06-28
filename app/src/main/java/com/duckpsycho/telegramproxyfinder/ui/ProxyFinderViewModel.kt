@@ -28,12 +28,16 @@ class ProxyFinderViewModel(
     private var searchJob: Job? = null
 
     init {
-        startSearch()
+        launchSearch()
     }
 
-    fun startSearch() {
-        if (searchJob?.isActive == true) return
+    fun refresh() {
+        searchJob?.cancel()
+        searchJob = null
+        launchSearch()
+    }
 
+    private fun launchSearch() {
         searchJob = viewModelScope.launch {
             _uiState.update {
                 it.copy(

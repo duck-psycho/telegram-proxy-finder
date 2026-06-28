@@ -5,23 +5,35 @@ import android.util.Log
 import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.drinkless.tdlib.Client
 import org.drinkless.tdlib.TdApi
 import java.io.File
 import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.resume
 
 internal object TdLibProxyChecker {
     private const val TAG = "TdLibProxyChecker"
+    private const val REQUEST_TIMEOUT_MS = 5_000L
+    private const val REMOVE_PROXY_TIMEOUT_MS = 2_000L
+    private const val ABANDON_CLOSE_TIMEOUT_MS = 2_000L
 
     private val lifecycleMutex = Mutex()
+    private val abandonScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var pingWorkRoot: File? = null
@@ -32,6 +44,7 @@ internal object TdLibProxyChecker {
     private class WorkerSlot(
         val client: Client,
         val slotDir: File,
+        val requestMutex: Mutex = Mutex(),
     )
 
     fun initialize(context: Context) {
@@ -42,18 +55,32 @@ internal object TdLibProxyChecker {
         val root = pingWorkRoot
             ?: error("Call TdLibProxyChecker.initialize(context) first")
 
+        val previousPool = detachWorkerPool()
+        closeWorkerPool(previousPool)
         lifecycleMutex.withLock {
-            shutdownWorkerPoolLocked()
             clearPingWorkDirectoryLocked(root)
-            workerPool = List(workerCount) { createWorkerSlot(root) }
+        }
+
+        val slots = coroutineScope {
+            List(workerCount) {
+                async { createWorkerSlot(root) }
+            }.awaitAll()
+        }
+
+        lifecycleMutex.withLock {
+            workerPool = slots
             Log.i(TAG, "Worker pool ready, size=$workerCount")
         }
     }
 
     suspend fun shutdownWorkerPool() {
-        lifecycleMutex.withLock {
-            shutdownWorkerPoolLocked()
-        }
+        closeWorkerPool(detachWorkerPool())
+    }
+
+    private suspend fun detachWorkerPool(): List<WorkerSlot>? = lifecycleMutex.withLock {
+        val pool = workerPool
+        workerPool = null
+        pool
     }
 
     suspend fun testProxyWithPing(
@@ -64,12 +91,30 @@ internal object TdLibProxyChecker {
         val slot = workerPool?.getOrNull(workerSlot)
             ?: return Result.failure(IllegalStateException("Worker pool is not prepared for slot $workerSlot"))
 
+        return slot.requestMutex.withLock {
+            testProxyWithPingLocked(
+                slot = slot,
+                workerSlot = workerSlot,
+                proxy = proxy,
+                timeoutMs = (timeoutSeconds * 1_000).toLong(),
+            )
+        }
+    }
+
+    private suspend fun testProxyWithPingLocked(
+        slot: WorkerSlot,
+        workerSlot: Int,
+        proxy: MtProtoProxy,
+        timeoutMs: Long,
+    ): Result<Long> {
         val client = slot.client
         var proxyId = -1
+        var abandonSlot = false
 
         return try {
             val addResponse = client.sendAwait(
                 TdApi.AddProxy(proxy.server, proxy.port, false, TdApi.ProxyTypeMtproto(proxy.secret)),
+                timeoutMs = REQUEST_TIMEOUT_MS,
             )
             proxyId = when (addResponse) {
                 is TdApi.Proxy -> addResponse.id
@@ -83,24 +128,18 @@ internal object TdLibProxyChecker {
                     )
             }
 
-            val pingResponse = withTimeout((timeoutSeconds * 1_000).toLong()) {
-                client.sendAwait(TdApi.PingProxy(proxyId))
-            }
-            when (pingResponse) {
-                is TdApi.Seconds -> {
-                    val pingMs = (pingResponse.seconds * 1_000.0).toLong().coerceAtLeast(1L)
-                    Result.success(pingMs)
+            when (val pingResult = client.pingWithTimeout(proxyId, timeoutMs)) {
+                is PingOutcome.Success -> Result.success(pingResult.pingMs)
+                is PingOutcome.TimedOut -> {
+                    abandonSlot = true
+                    proxyId = -1
+                    Result.failure(ProxyPingTimeoutException(timeoutMs))
                 }
-                is TdApi.Error ->
-                    Result.failure(
-                        IllegalStateException("pingProxy failed ${pingResponse.code}: ${pingResponse.message}"),
-                    )
-                else ->
-                    Result.failure(
-                        IllegalStateException("Unexpected TDLib response: ${pingResponse.javaClass.simpleName}"),
-                    )
+                is PingOutcome.Error -> Result.failure(pingResult.error)
+                is PingOutcome.Unexpected -> Result.failure(pingResult.error)
             }
         } catch (error: TimeoutCancellationException) {
+            abandonSlot = true
             Result.failure(error)
         } catch (error: CancellationException) {
             throw error
@@ -108,8 +147,86 @@ internal object TdLibProxyChecker {
             Result.failure(error)
         } finally {
             if (proxyId >= 0) {
-                runCatching { client.sendAwait(TdApi.RemoveProxy(proxyId)) }
+                val removed = withContext(NonCancellable) {
+                    runCatching {
+                        client.sendAwait(
+                            TdApi.RemoveProxy(proxyId),
+                            timeoutMs = REMOVE_PROXY_TIMEOUT_MS,
+                        )
+                    }.onFailure { e ->
+                        Log.w(TAG, "removeProxy failed for id=$proxyId", e)
+                    }.isSuccess
+                }
+                if (!removed) {
+                    abandonSlot = true
+                }
             }
+            if (abandonSlot) {
+                resetWorkerSlot(workerSlot, slot)
+            }
+        }
+    }
+
+    private class ProxyPingTimeoutException(timeoutMs: Long) :
+        Exception("Timed out waiting for $timeoutMs ms")
+
+    private sealed interface PingOutcome {
+        data class Success(val pingMs: Long) : PingOutcome
+        data object TimedOut : PingOutcome
+        data class Error(val error: IllegalStateException) : PingOutcome
+        data class Unexpected(val error: IllegalStateException) : PingOutcome
+    }
+
+    private suspend fun Client.pingWithTimeout(proxyId: Int, timeoutMs: Long): PingOutcome {
+        val responseDeferred = CompletableDeferred<TdApi.Object>()
+        send(TdApi.PingProxy(proxyId)) { response ->
+            responseDeferred.complete(response)
+        }
+
+        val pingResponse = try {
+            withTimeout(timeoutMs) {
+                responseDeferred.await()
+            }
+        } catch (_: TimeoutCancellationException) {
+            return PingOutcome.TimedOut
+        }
+
+        return when (pingResponse) {
+            is TdApi.Seconds -> {
+                val pingMs = (pingResponse.seconds * 1_000.0).toLong().coerceAtLeast(1L)
+                PingOutcome.Success(pingMs)
+            }
+            is TdApi.Error -> PingOutcome.Error(
+                IllegalStateException("pingProxy failed ${pingResponse.code}: ${pingResponse.message}"),
+            )
+            else -> PingOutcome.Unexpected(
+                IllegalStateException("Unexpected TDLib response: ${pingResponse.javaClass.simpleName}"),
+            )
+        }
+    }
+
+    private suspend fun resetWorkerSlot(workerSlot: Int, oldSlot: WorkerSlot) {
+        val root = pingWorkRoot ?: return
+        Log.w(TAG, "Resetting worker slot $workerSlot after stuck TDLib request")
+
+        val newSlot = createWorkerSlot(root)
+        lifecycleMutex.withLock {
+            val pool = workerPool
+            if (pool == null || pool.getOrNull(workerSlot) !== oldSlot) {
+                abandonWorkerSlot(newSlot)
+                return
+            }
+            workerPool = pool.toMutableList().apply { this[workerSlot] = newSlot }
+        }
+        abandonWorkerSlot(oldSlot)
+    }
+
+    private fun abandonWorkerSlot(slot: WorkerSlot) {
+        abandonScope.launch {
+            withTimeoutOrNull(ABANDON_CLOSE_TIMEOUT_MS) {
+                slot.client.closeAwait()
+            }
+            runCatching { slot.slotDir.deleteRecursively() }
         }
     }
 
@@ -154,12 +271,19 @@ internal object TdLibProxyChecker {
         return WorkerSlot(client = client, slotDir = slotDir)
     }
 
-    private suspend fun shutdownWorkerPoolLocked() {
-        workerPool?.forEach { slot ->
-            runCatching { slot.client.closeAwait() }
+    private suspend fun closeWorkerPool(pool: List<WorkerSlot>?) {
+        pool?.forEach { slot ->
+            slot.requestMutex.withLock {
+                runCatching {
+                    withTimeout(ABANDON_CLOSE_TIMEOUT_MS) {
+                        slot.client.closeAwait()
+                    }
+                }.onFailure { e ->
+                    Log.w(TAG, "TDLib close failed for ${slot.slotDir.name}", e)
+                }
+            }
             runCatching { slot.slotDir.deleteRecursively() }
         }
-        workerPool = null
     }
 
     private fun clearPingWorkDirectoryLocked(root: File) {
@@ -174,23 +298,25 @@ internal object TdLibProxyChecker {
     }
 
     private suspend fun Client.closeAwait() {
-        suspendCancellableCoroutine { continuation ->
-            send(TdApi.Close()) { _ ->
-                if (continuation.isActive) {
-                    continuation.resume(Unit)
-                }
-            }
+        val closed = CompletableDeferred<Unit>()
+        send(TdApi.Close()) { _ ->
+            closed.complete(Unit)
         }
+        closed.await()
     }
 
-    private suspend fun Client.sendAwait(query: TdApi.Function<*>): TdApi.Object =
-        suspendCancellableCoroutine { continuation ->
-            send(query) { response ->
-                if (continuation.isActive) {
-                    continuation.resume(response)
-                }
-            }
+    private suspend fun Client.sendAwait(
+        query: TdApi.Function<*>,
+        timeoutMs: Long = REQUEST_TIMEOUT_MS,
+    ): TdApi.Object {
+        val result = CompletableDeferred<TdApi.Object>()
+        send(query) { response ->
+            result.complete(response)
         }
+        return withTimeout(timeoutMs) {
+            result.await()
+        }
+    }
 
     private fun handleEphemeralAuthorization(
         update: TdApi.Object,
