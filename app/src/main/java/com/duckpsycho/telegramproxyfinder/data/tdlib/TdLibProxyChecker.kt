@@ -345,7 +345,7 @@ internal object TdLibProxyChecker {
                     systemLanguageCode = "en"
                     deviceModel = "Android"
                     systemVersion = "Android"
-                    applicationVersion = "1.0"
+                    applicationVersion = "1.1"
                 }
                 client.send(params) { result ->
                     when (result) {

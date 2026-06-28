@@ -34,7 +34,7 @@ class HttpProxySourceLoader(
 
     companion object {
         private const val TAG = "ProxySources"
-        private const val USER_AGENT = "TelegramProxyFinder/1.0"
+        private const val USER_AGENT = "TelegramProxyFinder/1.1"
 
         private val defaultClient = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
