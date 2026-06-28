@@ -1,7 +1,6 @@
 package com.duckpsycho.telegramproxyfinder.data.source
 
 import android.util.Log
-import com.duckpsycho.telegramproxyfinder.domain.ProxySourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -10,9 +9,9 @@ import java.util.concurrent.TimeUnit
 
 class HttpProxySourceLoader(
     private val client: OkHttpClient = defaultClient,
-) : ProxySourceLoader {
+) {
 
-    override suspend fun loadUrl(url: String): Set<String> = withContext(Dispatchers.IO) {
+    suspend fun fetch(url: String): String? = withContext(Dispatchers.IO) {
         runCatching {
             val request = Request.Builder()
                 .url(url)
@@ -31,11 +30,6 @@ class HttpProxySourceLoader(
             }
             .onFailure { error -> Log.e(TAG, "Failed to load $url", error) }
             .getOrNull()
-            ?.lineSequence()
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
-            ?.toSet()
-            ?: emptySet()
     }
 
     companion object {

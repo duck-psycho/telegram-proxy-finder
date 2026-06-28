@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.duckpsycho.telegramproxyfinder.data.source.DefaultProxySourceUrls
+import com.duckpsycho.telegramproxyfinder.data.source.CachingProxySourceLoader
+import com.duckpsycho.telegramproxyfinder.data.source.FileProxySourceCache
 import com.duckpsycho.telegramproxyfinder.data.source.HttpProxySourceLoader
 import com.duckpsycho.telegramproxyfinder.data.tdlib.TdLibProxyTester
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
@@ -96,7 +98,10 @@ class ProxyFinderViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     val searchService = ProxySearchService(
-                        sourceLoader = HttpProxySourceLoader(),
+                        sourceLoader = CachingProxySourceLoader(
+                            httpLoader = HttpProxySourceLoader(),
+                            cache = FileProxySourceCache(context),
+                        ),
                         tester = TdLibProxyTester(context),
                         sourceUrls = DefaultProxySourceUrls.urls,
                     )
