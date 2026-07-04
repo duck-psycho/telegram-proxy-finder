@@ -37,8 +37,8 @@ class HttpProxySourceLoader(
         private const val USER_AGENT = "TelegramProxyFinder/1.1"
 
         private val defaultClient = OkHttpClient.Builder()
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
             .build()
     }
 }

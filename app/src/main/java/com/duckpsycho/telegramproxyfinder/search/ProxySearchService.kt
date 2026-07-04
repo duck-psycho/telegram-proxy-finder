@@ -10,6 +10,8 @@ import com.duckpsycho.telegramproxyfinder.domain.parser.MtProtoProxyParser
 import com.duckpsycho.telegramproxyfinder.domain.parser.SecretDomainParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -32,11 +34,23 @@ class ProxySearchService(
             send(ProxySearchPhase.LoadingSources)
 
             val rawLines = mutableSetOf<String>()
-            sourceUrls.forEachIndexed { index, url ->
-                val lines = sourceLoader.loadUrl(url)
-                rawLines.addAll(lines)
-                Log.d(TAG, "Source ${index + 1}/${sourceUrls.size}: +${lines.size} lines, total=${rawLines.size}")
-                send(ProxySearchPhase.SourcesProgress(index + 1, sourceUrls.size))
+            val linesMutex = Mutex()
+            val loadedCounter = AtomicInteger(0)
+            val totalSources = sourceUrls.size
+
+            coroutineScope {
+                sourceUrls.map { url ->
+                    async(Dispatchers.IO) {
+                        val lines = sourceLoader.loadUrl(url)
+                        val totalLines = linesMutex.withLock {
+                            rawLines.addAll(lines)
+                            rawLines.size
+                        }
+                        val loaded = loadedCounter.incrementAndGet()
+                        Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines, total=$totalLines")
+                        send(ProxySearchPhase.SourcesProgress(loaded, totalSources))
+                    }
+                }.awaitAll()
             }
 
             send(ProxySearchPhase.Parsing)
