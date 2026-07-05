@@ -103,7 +103,7 @@ class ProxyFinderViewModel(
                             cache = FileProxySourceCache(context),
                         ),
                         tester = TdLibProxyTester(context),
-                        sourceUrls = DefaultProxySourceUrls.urls,
+                        sources = DefaultProxySourceUrls.sources,
                     )
                     return ProxyFinderViewModel(searchService = searchService) as T
                 }

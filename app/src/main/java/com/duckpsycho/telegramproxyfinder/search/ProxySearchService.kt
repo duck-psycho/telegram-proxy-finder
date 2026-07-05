@@ -1,6 +1,7 @@
 package com.duckpsycho.telegramproxyfinder.search
 
 import android.util.Log
+import com.duckpsycho.telegramproxyfinder.data.source.ProxySource
 import com.duckpsycho.telegramproxyfinder.domain.ProxySourceLoader
 import com.duckpsycho.telegramproxyfinder.domain.ProxyTester
 import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
@@ -24,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class ProxySearchService(
     private val sourceLoader: ProxySourceLoader,
     private val tester: ProxyTester,
-    private val sourceUrls: List<String>,
+    private val sources: List<ProxySource>,
     private val poolSize: Int = DEFAULT_POOL_SIZE,
 ) {
 
@@ -36,12 +37,12 @@ class ProxySearchService(
             val rawLines = mutableSetOf<String>()
             val linesMutex = Mutex()
             val loadedCounter = AtomicInteger(0)
-            val totalSources = sourceUrls.size
+            val totalSources = sources.size
 
             coroutineScope {
-                sourceUrls.map { url ->
+                sources.map { source ->
                     async(Dispatchers.IO) {
-                        val lines = sourceLoader.loadUrl(url)
+                        val lines = loadSource(source)
                         val totalLines = linesMutex.withLock {
                             rawLines.addAll(lines)
                             rawLines.size
@@ -137,6 +138,9 @@ class ProxySearchService(
             }
         }
     }
+
+    private suspend fun loadSource(source: ProxySource): Set<String> =
+        sourceLoader.load(source)
 
     companion object {
         private const val TAG = "ProxySearch"

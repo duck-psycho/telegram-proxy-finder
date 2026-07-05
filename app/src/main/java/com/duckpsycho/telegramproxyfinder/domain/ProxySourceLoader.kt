@@ -1,5 +1,7 @@
 package com.duckpsycho.telegramproxyfinder.domain
 
+import com.duckpsycho.telegramproxyfinder.data.source.ProxySource
+
 interface ProxySourceLoader {
-    suspend fun loadUrl(url: String): Set<String>
+    suspend fun load(source: ProxySource): Set<String>
 }
