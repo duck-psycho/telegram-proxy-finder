@@ -1,13 +1,18 @@
 package com.duckpsycho.telegramproxyfinder.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,21 +39,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.duckpsycho.telegramproxyfinder.R
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
+import com.duckpsycho.telegramproxyfinder.platform.update.ReleaseUpdate
 import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
 import com.duckpsycho.telegramproxyfinder.ui.ProxyFinderUiState
 import com.duckpsycho.telegramproxyfinder.ui.SearchStatus
 import com.duckpsycho.telegramproxyfinder.ui.components.ProxyListItem
 import kotlinx.coroutines.launch
 
+private val FloatingButtonsBottomInset = 16.dp + 56.dp + 8.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProxyFinderScreen(
     uiState: ProxyFinderUiState,
+    availableUpdate: ReleaseUpdate?,
     onInfoClick: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
@@ -72,64 +85,121 @@ fun ProxyFinderScreen(
                 ),
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onInfoClick,
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Info,
-                    contentDescription = stringResource(R.string.info),
-                )
-            }
-        },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            StatusBar(
-                statusText = uiState.status.toDisplayString(),
-                isLoading = uiState.isLoading,
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                thickness = 0.5.dp,
-            )
-            val pullRefreshState = rememberPullToRefreshState()
-            val scope = rememberCoroutineScope()
+            Column(modifier = Modifier.fillMaxSize()) {
+                StatusBar(
+                    statusText = uiState.status.toDisplayString(),
+                    isLoading = uiState.isLoading,
+                )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    thickness = 0.5.dp,
+                )
+                val pullRefreshState = rememberPullToRefreshState()
+                val scope = rememberCoroutineScope()
 
-            PullToRefreshBox(
-                state = pullRefreshState,
-                isRefreshing = false,
-                onRefresh = {
-                    onRefresh()
-                    scope.launch {
-                        pullRefreshState.animateToHidden()
-                    }
-                },
-                indicator = {
-                    PullToRefreshDefaults.Indicator(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        isRefreshing = false,
-                        state = pullRefreshState,
+                PullToRefreshBox(
+                    state = pullRefreshState,
+                    isRefreshing = false,
+                    onRefresh = {
+                        onRefresh()
+                        scope.launch {
+                            pullRefreshState.animateToHidden()
+                        }
+                    },
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            isRefreshing = false,
+                            state = pullRefreshState,
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    ProxyList(
+                        proxies = uiState.workingProxies,
+                        bottomContentPadding = FloatingButtonsBottomInset,
+                        modifier = Modifier.fillMaxSize(),
                     )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                ProxyList(
-                    proxies = uiState.workingProxies,
-                    modifier = Modifier.fillMaxSize(),
+                }
+            }
+
+            val fabPadding = 16.dp
+            if (availableUpdate != null) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(fabPadding),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    UpdateButton(
+                        update = availableUpdate,
+                        modifier = Modifier.weight(1f),
+                    )
+                    InfoFab(onClick = onInfoClick)
+                }
+            } else {
+                InfoFab(
+                    onClick = onInfoClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(fabPadding),
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun InfoFab(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier.size(56.dp),
+        shape = CircleShape,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Info,
+            contentDescription = stringResource(R.string.info),
+        )
+    }
+}
+
+@Composable
+private fun UpdateButton(
+    update: ReleaseUpdate,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+
+    ExtendedFloatingActionButton(
+        onClick = {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.pageUrl)))
+        },
+        modifier = modifier.height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+    ) {
+        Text(
+            text = stringResource(R.string.update_available, update.versionLabel),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -186,6 +256,7 @@ private fun StatusBar(
 @Composable
 private fun ProxyList(
     proxies: List<WorkingMtProtoProxy>,
+    bottomContentPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -202,6 +273,7 @@ private fun ProxyList(
     LazyColumn(
         modifier = modifier.background(MaterialTheme.colorScheme.background),
         state = listState,
+        contentPadding = PaddingValues(bottom = bottomContentPadding),
     ) {
         if (proxies.isEmpty()) {
             item(key = "pull_refresh_placeholder") {

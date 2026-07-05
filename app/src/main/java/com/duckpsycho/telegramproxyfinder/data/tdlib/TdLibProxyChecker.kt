@@ -2,6 +2,7 @@ package com.duckpsycho.telegramproxyfinder.data.tdlib
 
 import android.content.Context
 import android.util.Log
+import com.duckpsycho.telegramproxyfinder.BuildConfig
 import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -345,7 +346,7 @@ internal object TdLibProxyChecker {
                     systemLanguageCode = "en"
                     deviceModel = "Android"
                     systemVersion = "Android"
-                    applicationVersion = "1.1"
+                    applicationVersion = BuildConfig.VERSION_NAME
                 }
                 client.send(params) { result ->
                     when (result) {

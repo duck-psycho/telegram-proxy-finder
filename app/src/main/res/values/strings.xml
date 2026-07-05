@@ -14,6 +14,7 @@
     <string name="copy">Copy</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="no_tg_app">No app to handle tg://</string>
+    <string name="update_available">New version available: %1$s</string>
     <string name="info">Info</string>
     <string name="back">Back</string>
     <string name="info_html_content"><![CDATA[Report a bug or suggest a feature here:<br/><a href="https://github.com/duck-psycho/telegram-proxy-finder">https://github.com/duck-psycho/telegram-proxy-finder</a><br/><br/><b>Developer</b>: <a href="https://github.com/duck-psycho">Duckpsycho</a><br/><br/><b>Support the developer</b>:<br/>Boosty: <a href="https://boosty.to/duckpsycho">https://boosty.to/duckpsycho</a> or a one-time <a href="https://boosty.to/duckpsycho/donate">donation</a><br/><br/>Updates will be available on <a href="https://github.com/duck-psycho/telegram-proxy-finder/releases">GitHub Releases</a> or <a href="https://boosty.to/duckpsycho">Boosty</a><br/><br/><b>BTC (Bitcoin)</b>: 178tovsfYQ8omdEPQSHAiH4jXBbBCWNacs<br/><br/><b>USDT, TRX (TRC20)</b>: TLD6QVdHhHNRDgRkYuqhUa2B9bkYgeRxmy<br/><br/><b>TON</b>: EQDuRyrzSzP8dqbMVNwEBvan_LPK44uRAIuAoT_VF2BXQtS6<br/><br/><b>ETH (ERC20)</b>: 0xF7556e3969e520A677e91E2bFb90EA88bD57EaD9<br/><br/><b>SOL (Solana)</b>: 3tGbXMzqTu7av7DjriY7wkWGEEHxshEZN9SbFP4qBi8v<br/><br/><b>LTC (Litecoin)</b>: LfmZvRPM4zb6EtwnAn9ATLo8kK4Rw7JxUK<br/><br/><b>BNB</b>: 0xF7556e3969e520A677e91E2bFb90EA88bD57EaD9]]></string>

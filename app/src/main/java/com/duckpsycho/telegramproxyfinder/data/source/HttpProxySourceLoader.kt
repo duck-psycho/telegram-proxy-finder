@@ -1,6 +1,7 @@
 package com.duckpsycho.telegramproxyfinder.data.source
 
 import android.util.Log
+import com.duckpsycho.telegramproxyfinder.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -34,7 +35,7 @@ class HttpProxySourceLoader(
 
     companion object {
         private const val TAG = "ProxySources"
-        private const val USER_AGENT = "TelegramProxyFinder/1.1"
+        private val USER_AGENT = "TelegramProxyFinder/${BuildConfig.VERSION_NAME}"
 
         private val defaultClient = OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)

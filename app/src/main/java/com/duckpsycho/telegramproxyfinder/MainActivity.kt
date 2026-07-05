@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.duckpsycho.telegramproxyfinder.platform.update.GitHubReleaseChecker
+import com.duckpsycho.telegramproxyfinder.platform.update.ReleaseUpdate
 import com.duckpsycho.telegramproxyfinder.ui.ProxyFinderViewModel
 import com.duckpsycho.telegramproxyfinder.ui.screen.InfoScreen
 import com.duckpsycho.telegramproxyfinder.ui.screen.ProxyFinderScreen
@@ -29,12 +32,21 @@ class MainActivity : ComponentActivity() {
             MTProtoProxyTheme {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 var showInfoScreen by remember { mutableStateOf(false) }
+                var availableUpdate by remember { mutableStateOf<ReleaseUpdate?>(null) }
+
+                LaunchedEffect(Unit) {
+                    GitHubReleaseChecker.checkAsync { update ->
+                        if (isFinishing) return@checkAsync
+                        availableUpdate = update
+                    }
+                }
 
                 if (showInfoScreen) {
                     InfoScreen(onBack = { showInfoScreen = false })
                 } else {
                     ProxyFinderScreen(
                         uiState = uiState,
+                        availableUpdate = availableUpdate,
                         onInfoClick = { showInfoScreen = true },
                         onRefresh = viewModel::refresh,
                     )
