@@ -10,14 +10,14 @@ class TdLibProxyTester(context: Context) : ProxyTester {
         TdLibProxyChecker.initialize(context.applicationContext)
     }
 
-    override suspend fun prepareSearch(workerCount: Int) {
-        TdLibProxyChecker.prepareWorkerPool(workerCount)
+    override suspend fun prepareSearch() {
+        TdLibProxyChecker.prepareSearch()
     }
 
-    override suspend fun test(proxy: MtProtoProxy, workerSlot: Int): Result<Long> =
-        TdLibProxyChecker.testProxyWithPing(proxy, workerSlot)
+    override suspend fun test(proxy: MtProtoProxy): Result<Long> =
+        TdLibProxyChecker.testProxyWithPing(proxy)
 
     override suspend fun finishSearch() {
-        TdLibProxyChecker.shutdownWorkerPool()
+        TdLibProxyChecker.finishSearch()
     }
 }

@@ -76,20 +76,20 @@ class ProxySearchService(
 
             val workers = minOf(poolSize, totalToTest).coerceAtLeast(1)
             withContext(Dispatchers.IO) {
-                tester.prepareSearch(workers)
+                tester.prepareSearch()
                 workersPrepared = workers
             }
 
             val testDispatcher = Dispatchers.IO.limitedParallelism(workers)
             coroutineScope {
-                repeat(workers) { workerSlot ->
+                repeat(workers) {
                     launch(testDispatcher) {
                         while (true) {
                             val index = nextIndex.getAndIncrement()
                             if (index >= totalToTest) break
 
                             val proxy = proxiesToTest[index]
-                            val result = tester.test(proxy, workerSlot)
+                            val result = tester.test(proxy)
                             val checked = checkedCounter.incrementAndGet()
                             send(ProxySearchPhase.Testing(checked, totalToTest))
 
