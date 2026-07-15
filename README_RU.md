@@ -12,7 +12,11 @@ Android-приложение для поиска рабочих MTProto-прок
 
 ## Скриншоты
 
-<img width="400" src="./images/screenshot.jpg">
+<p align="center">
+  <img src="./images/screenshot.jpg" width="250" />
+  <img src="./images/screenshot1.jpg" width="250" />
+  <img src="./images/screenshot2.jpg" width="250" />
+</p>
 
 ## Поддержать разработчика
 

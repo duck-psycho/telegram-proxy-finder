@@ -12,9 +12,11 @@ You can download the latest version of the application in the "[Releases](https:
 
 ## Screenshots
 
-<img width="400" src="./images/screenshot.jpg">
-<img width="400" src="./images/screenshot1.jpg">
-<img width="400" src="./images/screenshot2.jpg">
+<p align="center">
+  <img src="./images/screenshot.jpg" width="250" />
+  <img src="./images/screenshot1.jpg" width="250" />
+  <img src="./images/screenshot2.jpg" width="250" />
+</p>
 
 ## Support the developer
 
