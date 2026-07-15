@@ -12,7 +12,10 @@ data class ProxySource(
     val value: String,
 ) {
     fun resolveUrl(): String = when (type) {
-        SourceType.Web -> value
+        SourceType.Web -> {
+            value
+        }
+
         SourceType.Telegram -> {
             val username = value.trim().removePrefix("@")
             val encoded = URLEncoder.encode(username, "UTF-8")

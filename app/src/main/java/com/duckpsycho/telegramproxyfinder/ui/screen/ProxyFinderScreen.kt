@@ -4,12 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,8 +47,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.duckpsycho.telegramproxyfinder.R
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
-import com.duckpsycho.telegramproxyfinder.platform.update.ReleaseUpdate
 import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
+import com.duckpsycho.telegramproxyfinder.platform.update.ReleaseUpdate
 import com.duckpsycho.telegramproxyfinder.ui.ProxyFinderUiState
 import com.duckpsycho.telegramproxyfinder.ui.SearchStatus
 import com.duckpsycho.telegramproxyfinder.ui.components.ProxyListItem
@@ -206,15 +206,21 @@ private fun UpdateButton(
 @Composable
 private fun SearchStatus.toDisplayString(): String = when (this) {
     SearchStatus.LoadingSources -> stringResource(R.string.status_loading_sources)
+
     is SearchStatus.SourcesProgress -> stringResource(
         R.string.status_sources_progress,
         loaded,
         total,
     )
+
     SearchStatus.Parsing -> stringResource(R.string.status_parsing)
+
     is SearchStatus.Testing -> stringResource(R.string.status_testing, checked, total)
+
     is SearchStatus.Completed -> stringResource(R.string.status_found_proxies, foundCount)
+
     SearchStatus.NoValidProxies -> stringResource(R.string.status_no_valid_proxies)
+
     is SearchStatus.Failed -> {
         val message = message?.takeIf { it.isNotBlank() }
             ?: stringResource(R.string.error_unknown)

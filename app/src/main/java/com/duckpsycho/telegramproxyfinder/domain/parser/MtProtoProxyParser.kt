@@ -4,7 +4,6 @@ import android.net.Uri
 import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 
 object MtProtoProxyParser {
-
     fun parse(rawLine: String): MtProtoProxy? {
         val line = rawLine.trim()
         if (line.isEmpty()) return null
@@ -26,14 +25,17 @@ object MtProtoProxyParser {
         return buildProxy(server, port, secret)
     }
 
-    private fun normalize(link: String): String =
-        if (link.startsWith("https://", ignoreCase = true)) {
-            link.replaceFirst("https://t.me/proxy", "tg://proxy")
-        } else {
-            link
-        }
+    private fun normalize(link: String): String = if (link.startsWith("https://", ignoreCase = true)) {
+        link.replaceFirst("https://t.me/proxy", "tg://proxy")
+    } else {
+        link
+    }
 
-    private fun buildProxy(server: String, port: Int, secret: String): MtProtoProxy? {
+    private fun buildProxy(
+        server: String,
+        port: Int,
+        secret: String,
+    ): MtProtoProxy? {
         if (server.isEmpty() || secret.isEmpty()) return null
         return MtProtoProxy(server = server, port = port, secret = secret.trim())
     }

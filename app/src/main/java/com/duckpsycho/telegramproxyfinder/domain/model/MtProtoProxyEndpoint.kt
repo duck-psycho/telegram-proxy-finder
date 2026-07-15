@@ -8,5 +8,4 @@ interface MtProtoProxyEndpoint {
     val secret: String
 }
 
-fun MtProtoProxyEndpoint.identityKey(): String =
-    "${server.trim().lowercase(Locale.US)}:$port:${secret.trim().lowercase(Locale.US)}"
+fun MtProtoProxyEndpoint.identityKey(): String = "${server.trim().lowercase(Locale.US)}:$port:${secret.trim().lowercase(Locale.US)}"

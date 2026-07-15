@@ -7,10 +7,12 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class ReleaseUpdate(val versionLabel: String, val pageUrl: String)
+data class ReleaseUpdate(
+    val versionLabel: String,
+    val pageUrl: String,
+)
 
 object GitHubReleaseChecker {
-
     private const val RELEASES_URL =
         "https://api.github.com/repos/duck-psycho/telegram-proxy-finder/releases"
     private val USER_AGENT = "Telegram-Proxy-Finder-Android/${BuildConfig.VERSION_NAME}"
@@ -37,7 +39,10 @@ object GitHubReleaseChecker {
         }.getOrNull()
     }
 
-    private fun findBestNewerRelease(releases: JSONArray, current: List<Int>): ReleaseUpdate? {
+    private fun findBestNewerRelease(
+        releases: JSONArray,
+        current: List<Int>,
+    ): ReleaseUpdate? {
         var best: ReleaseUpdate? = null
         var bestVersion: List<Int>? = null
 
@@ -64,13 +69,14 @@ object GitHubReleaseChecker {
     private fun fetchReleases(): JSONArray? {
         var connection: HttpURLConnection? = null
         return try {
-            connection = (URL(RELEASES_URL).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = CONNECT_TIMEOUT_MS
-                readTimeout = READ_TIMEOUT_MS
-                setRequestProperty("Accept", "application/vnd.github+json")
-                setRequestProperty("User-Agent", USER_AGENT)
-            }
+            connection =
+                (URL(RELEASES_URL).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                    setRequestProperty("Accept", "application/vnd.github+json")
+                    setRequestProperty("User-Agent", USER_AGENT)
+                }
 
             if (connection.responseCode !in 200..299) {
                 connection.errorStream?.close()
@@ -103,7 +109,10 @@ object GitHubReleaseChecker {
         return numbers
     }
 
-    private fun compareVersions(left: List<Int>, right: List<Int>): Int {
+    private fun compareVersions(
+        left: List<Int>,
+        right: List<Int>,
+    ): Int {
         val maxLength = maxOf(left.size, right.size)
         for (i in 0 until maxLength) {
             val leftPart = left.getOrElse(i) { 0 }

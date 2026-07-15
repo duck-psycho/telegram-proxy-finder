@@ -19,15 +19,15 @@ import com.duckpsycho.telegramproxyfinder.ui.screen.ProxyFinderScreen
 import com.duckpsycho.telegramproxyfinder.ui.theme.MTProtoProxyTheme
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            val viewModel: ProxyFinderViewModel = viewModel(
-                factory = ProxyFinderViewModel.factory(applicationContext),
-            )
+            val viewModel: ProxyFinderViewModel =
+                viewModel(
+                    factory = ProxyFinderViewModel.factory(applicationContext),
+                )
 
             MTProtoProxyTheme {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()

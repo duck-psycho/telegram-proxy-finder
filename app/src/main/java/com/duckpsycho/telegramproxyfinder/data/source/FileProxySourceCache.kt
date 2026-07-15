@@ -5,8 +5,9 @@ import android.util.Log
 import java.io.File
 import java.security.MessageDigest
 
-class FileProxySourceCache(context: Context) {
-
+class FileProxySourceCache(
+    context: Context,
+) {
     private val cacheDir = File(context.filesDir, CACHE_DIR_NAME).apply { mkdirs() }
 
     fun read(url: String): String? = runCatching {
@@ -16,11 +17,13 @@ class FileProxySourceCache(context: Context) {
         val lineCount = body.lineSequence().count { it.isNotBlank() }
         Log.w(TAG, "Using cache for $url ($lineCount lines)")
         body
-    }
-        .onFailure { error -> Log.e(TAG, "Failed to read cache for $url", error) }
+    }.onFailure { error -> Log.e(TAG, "Failed to read cache for $url", error) }
         .getOrNull()
 
-    fun write(url: String, body: String) {
+    fun write(
+        url: String,
+        body: String,
+    ) {
         runCatching { cacheFile(url).writeText(body) }
             .onFailure { error -> Log.e(TAG, "Failed to write cache for $url", error) }
     }

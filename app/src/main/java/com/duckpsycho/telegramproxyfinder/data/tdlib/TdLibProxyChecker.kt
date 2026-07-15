@@ -40,8 +40,9 @@ internal object TdLibProxyChecker {
     }
 
     suspend fun prepareSearch() {
-        val root = workRoot
-            ?: error("Call TdLibProxyChecker.initialize(context) first")
+        val root =
+            workRoot
+                ?: error("Call TdLibProxyChecker.initialize(context) first")
 
         lifecycleMutex.withLock {
             val existing = clientPool
@@ -51,11 +52,12 @@ internal object TdLibProxyChecker {
                 clearWorkRoot(root)
             }
 
-            val created = coroutineScope {
-                List(CLIENT_POOL_SIZE - existing.size) {
-                    async { createClient(root) }
-                }.awaitAll()
-            }
+            val created =
+                coroutineScope {
+                    List(CLIENT_POOL_SIZE - existing.size) {
+                        async { createClient(root) }
+                    }.awaitAll()
+                }
             synchronized(poolWriteLock) {
                 clientPool = clientPool + created
             }
@@ -65,9 +67,10 @@ internal object TdLibProxyChecker {
 
     suspend fun finishSearch() {
         clientPool.forEach { client ->
-            val response = runCatching { client.sendAwait(TdApi.GetProxies()) }
-                .onFailure { e -> Log.w(TAG, "getProxies failed during cleanup", e) }
-                .getOrNull()
+            val response =
+                runCatching { client.sendAwait(TdApi.GetProxies()) }
+                    .onFailure { e -> Log.w(TAG, "getProxies failed during cleanup", e) }
+                    .getOrNull()
             val proxies = (response as? TdApi.Proxies)?.proxies ?: return@forEach
             proxies.forEach { proxy ->
                 client.removeProxyAsync(proxy.id)
@@ -86,24 +89,32 @@ internal object TdLibProxyChecker {
         val client = pool[Math.floorMod(nextClientIndex.getAndIncrement(), pool.size)]
         val timeoutMs = (timeoutSeconds * 1_000).toLong()
 
-        val addResponse = try {
-            client.sendAwait(
-                TdApi.AddProxy(proxy.server, proxy.port, false, TdApi.ProxyTypeMtproto(proxy.secret)),
-            )
-        } catch (error: TimeoutCancellationException) {
-            return Result.failure(error)
-        }
-        val proxyId = when (addResponse) {
-            is TdApi.Proxy -> addResponse.id
-            is TdApi.Error ->
-                return Result.failure(
-                    IllegalStateException("addProxy failed ${addResponse.code}: ${addResponse.message}"),
+        val addResponse =
+            try {
+                client.sendAwait(
+                    TdApi.AddProxy(proxy.server, proxy.port, false, TdApi.ProxyTypeMtproto(proxy.secret)),
                 )
-            else ->
-                return Result.failure(
-                    IllegalStateException("Unexpected TDLib response: ${addResponse.javaClass.simpleName}"),
-                )
-        }
+            } catch (error: TimeoutCancellationException) {
+                return Result.failure(error)
+            }
+        val proxyId =
+            when (addResponse) {
+                is TdApi.Proxy -> {
+                    addResponse.id
+                }
+
+                is TdApi.Error -> {
+                    return Result.failure(
+                        IllegalStateException("addProxy failed ${addResponse.code}: ${addResponse.message}"),
+                    )
+                }
+
+                else -> {
+                    return Result.failure(
+                        IllegalStateException("Unexpected TDLib response: ${addResponse.javaClass.simpleName}"),
+                    )
+                }
+            }
 
         return try {
             when (val pingResult = client.pingWithTimeout(proxyId, timeoutMs)) {
@@ -117,41 +128,61 @@ internal object TdLibProxyChecker {
         }
     }
 
-    private class ProxyPingTimeoutException(timeoutMs: Long) :
-        Exception("Timed out waiting for $timeoutMs ms")
+    private class ProxyPingTimeoutException(
+        timeoutMs: Long,
+    ) : Exception("Timed out waiting for $timeoutMs ms")
 
     private sealed interface PingOutcome {
-        data class Success(val pingMs: Long) : PingOutcome
+        data class Success(
+            val pingMs: Long,
+        ) : PingOutcome
+
         data object TimedOut : PingOutcome
-        data class Error(val error: IllegalStateException) : PingOutcome
-        data class Unexpected(val error: IllegalStateException) : PingOutcome
+
+        data class Error(
+            val error: IllegalStateException,
+        ) : PingOutcome
+
+        data class Unexpected(
+            val error: IllegalStateException,
+        ) : PingOutcome
     }
 
-    private suspend fun Client.pingWithTimeout(proxyId: Int, timeoutMs: Long): PingOutcome {
+    private suspend fun Client.pingWithTimeout(
+        proxyId: Int,
+        timeoutMs: Long,
+    ): PingOutcome {
         val responseDeferred = CompletableDeferred<TdApi.Object>()
         send(TdApi.PingProxy(proxyId)) { response ->
             responseDeferred.complete(response)
         }
 
-        val pingResponse = try {
-            withTimeout(timeoutMs) {
-                responseDeferred.await()
+        val pingResponse =
+            try {
+                withTimeout(timeoutMs) {
+                    responseDeferred.await()
+                }
+            } catch (_: TimeoutCancellationException) {
+                return PingOutcome.TimedOut
             }
-        } catch (_: TimeoutCancellationException) {
-            return PingOutcome.TimedOut
-        }
 
         return when (pingResponse) {
             is TdApi.Seconds -> {
                 val pingMs = (pingResponse.seconds * 1_000.0).toLong().coerceAtLeast(1L)
                 PingOutcome.Success(pingMs)
             }
-            is TdApi.Error -> PingOutcome.Error(
-                IllegalStateException("pingProxy failed ${pingResponse.code}: ${pingResponse.message}"),
-            )
-            else -> PingOutcome.Unexpected(
-                IllegalStateException("Unexpected TDLib response: ${pingResponse.javaClass.simpleName}"),
-            )
+
+            is TdApi.Error -> {
+                PingOutcome.Error(
+                    IllegalStateException("pingProxy failed ${pingResponse.code}: ${pingResponse.message}"),
+                )
+            }
+
+            else -> {
+                PingOutcome.Unexpected(
+                    IllegalStateException("Unexpected TDLib response: ${pingResponse.javaClass.simpleName}"),
+                )
+            }
         }
     }
 
@@ -169,23 +200,24 @@ internal object TdLibProxyChecker {
         val clientRef = AtomicReference<Client?>(null)
         val earlyUpdates = Collections.synchronizedList(mutableListOf<TdApi.Object>())
 
-        val client = Client.create(
-            { update ->
-                val c = clientRef.get()
-                if (c == null) {
-                    earlyUpdates.add(update)
-                } else {
-                    handleAuthorizationUpdate(
-                        update = update,
-                        client = c,
-                        tdReady = tdReady,
-                        clientDir = clientDir,
-                    )
-                }
-            },
-            { e -> Log.e(TAG, "TDLib update handler exception", e) },
-            { e -> Log.e(TAG, "TDLib internal exception", e) },
-        )
+        val client =
+            Client.create(
+                { update ->
+                    val c = clientRef.get()
+                    if (c == null) {
+                        earlyUpdates.add(update)
+                    } else {
+                        handleAuthorizationUpdate(
+                            update = update,
+                            client = c,
+                            tdReady = tdReady,
+                            clientDir = clientDir,
+                        )
+                    }
+                },
+                { e -> Log.e(TAG, "TDLib update handler exception", e) },
+                { e -> Log.e(TAG, "TDLib internal exception", e) },
+            )
         clientRef.set(client)
 
         synchronized(earlyUpdates) {
@@ -246,34 +278,44 @@ internal object TdLibProxyChecker {
 
                 val dbPath = File(clientDir, "tdlib-db").absolutePath
                 val filesPath = File(clientDir, "tdlib-files").apply { mkdirs() }.absolutePath
-                val params = TdApi.SetTdlibParameters().apply {
-                    useTestDc = false
-                    databaseDirectory = dbPath
-                    filesDirectory = filesPath
-                    databaseEncryptionKey = byteArrayOf()
-                    useFileDatabase = false
-                    useChatInfoDatabase = false
-                    useMessageDatabase = false
-                    useSecretChats = false
-                    apiId = 94575
-                    apiHash = "a3406de8d171bb422bb6ddf3bbd800e2"
-                    systemLanguageCode = "en"
-                    deviceModel = "Android"
-                    systemVersion = "Android"
-                    applicationVersion = BuildConfig.VERSION_NAME
-                }
+                val params =
+                    TdApi.SetTdlibParameters().apply {
+                        useTestDc = false
+                        databaseDirectory = dbPath
+                        filesDirectory = filesPath
+                        databaseEncryptionKey = byteArrayOf()
+                        useFileDatabase = false
+                        useChatInfoDatabase = false
+                        useMessageDatabase = false
+                        useSecretChats = false
+                        apiId = 94575
+                        apiHash = "a3406de8d171bb422bb6ddf3bbd800e2"
+                        systemLanguageCode = "en"
+                        deviceModel = "Android"
+                        systemVersion = "Android"
+                        applicationVersion = BuildConfig.VERSION_NAME
+                    }
                 client.send(params) { result ->
                     when (result) {
-                        is TdApi.Ok -> tdReady.complete(Unit)
-                        is TdApi.Error -> tdReady.completeExceptionally(
-                            IllegalStateException("setTdlibParameters failed ${result.code}: ${result.message}"),
-                        )
-                        else -> tdReady.completeExceptionally(
-                            IllegalStateException("Unexpected response: ${result.javaClass.simpleName}"),
-                        )
+                        is TdApi.Ok -> {
+                            tdReady.complete(Unit)
+                        }
+
+                        is TdApi.Error -> {
+                            tdReady.completeExceptionally(
+                                IllegalStateException("setTdlibParameters failed ${result.code}: ${result.message}"),
+                            )
+                        }
+
+                        else -> {
+                            tdReady.completeExceptionally(
+                                IllegalStateException("Unexpected response: ${result.javaClass.simpleName}"),
+                            )
+                        }
                     }
                 }
             }
+
             is TdApi.AuthorizationStateClosed -> {
                 Log.w(TAG, "TDLib client closed unexpectedly, removing from pool")
                 tdReady.completeExceptionally(

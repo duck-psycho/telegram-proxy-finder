@@ -27,7 +27,6 @@ class ProxySearchService(
     private val sources: List<ProxySource>,
     private val poolSize: Int = DEFAULT_POOL_SIZE,
 ) {
-
     fun search(): Flow<ProxySearchPhase> = channelFlow {
         var workersPrepared = 0
         try {
@@ -36,30 +35,34 @@ class ProxySearchService(
             val loadedCounter = AtomicInteger(0)
             val totalSources = sources.size
 
-            val loadedSources = coroutineScope {
-                sources.mapIndexed { sourceIndex, source ->
-                    async(Dispatchers.IO) {
-                        val lines = loadSource(source)
-                        val loaded = loadedCounter.incrementAndGet()
-                        Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines")
-                        send(ProxySearchPhase.SourcesProgress(loaded, totalSources))
-                        sourceIndex to lines
-                    }
-                }.awaitAll().sortedBy { it.first }
-            }
+            val loadedSources =
+                coroutineScope {
+                    sources
+                        .mapIndexed { sourceIndex, source ->
+                            async(Dispatchers.IO) {
+                                val lines = loadSource(source)
+                                val loaded = loadedCounter.incrementAndGet()
+                                Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines")
+                                send(ProxySearchPhase.SourcesProgress(loaded, totalSources))
+                                sourceIndex to lines
+                            }
+                        }.awaitAll()
+                        .sortedBy { it.first }
+                }
 
             send(ProxySearchPhase.Parsing)
             val seenKeys = mutableSetOf<String>()
-            val validProxies = buildList {
-                for ((_, lines) in loadedSources) {
-                    for (line in lines) {
-                        val proxy = MtProtoProxyParser.parse(line) ?: continue
-                        if (seenKeys.add(proxy.identityKey())) {
-                            add(proxy)
+            val validProxies =
+                buildList {
+                    for ((_, lines) in loadedSources) {
+                        for (line in lines) {
+                            val proxy = MtProtoProxyParser.parse(line) ?: continue
+                            if (seenKeys.add(proxy.identityKey())) {
+                                add(proxy)
+                            }
                         }
                     }
                 }
-            }
 
             val rawLineCount = loadedSources.sumOf { it.second.size }
             if (validProxies.isEmpty()) {
@@ -95,30 +98,33 @@ class ProxySearchService(
                             val checked = checkedCounter.incrementAndGet()
                             send(ProxySearchPhase.Testing(checked, totalToTest))
 
-                            result.onSuccess { pingMs ->
-                                val entry = WorkingMtProtoProxy(
-                                    server = proxy.server.trim(),
-                                    port = proxy.port,
-                                    secret = proxy.secret.trim(),
-                                    pingMs = pingMs,
-                                    secretDomain = SecretDomainParser.parse(proxy.secret),
-                                )
-                                val shouldEmit = foundMutex.withLock {
-                                    val key = entry.identityKey()
-                                    val existing = foundProxies[key]
-                                    if (existing == null || pingMs < existing.pingMs) {
-                                        foundProxies[key] = entry
-                                        true
-                                    } else {
-                                        false
+                            result
+                                .onSuccess { pingMs ->
+                                    val entry =
+                                        WorkingMtProtoProxy(
+                                            server = proxy.server.trim(),
+                                            port = proxy.port,
+                                            secret = proxy.secret.trim(),
+                                            pingMs = pingMs,
+                                            secretDomain = SecretDomainParser.parse(proxy.secret),
+                                        )
+                                    val shouldEmit =
+                                        foundMutex.withLock {
+                                            val key = entry.identityKey()
+                                            val existing = foundProxies[key]
+                                            if (existing == null || pingMs < existing.pingMs) {
+                                                foundProxies[key] = entry
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                    if (shouldEmit) {
+                                        send(ProxySearchPhase.ProxyFound(entry))
                                     }
+                                }.onFailure { error ->
+                                    Log.e(TAG, "MTProto check failed: $proxy", error)
                                 }
-                                if (shouldEmit) {
-                                    send(ProxySearchPhase.ProxyFound(entry))
-                                }
-                            }.onFailure { error ->
-                                Log.e(TAG, "MTProto check failed: $proxy", error)
-                            }
                         }
                     }
                 }
@@ -141,8 +147,7 @@ class ProxySearchService(
         }
     }
 
-    private suspend fun loadSource(source: ProxySource): Set<String> =
-        sourceLoader.load(source)
+    private suspend fun loadSource(source: ProxySource): Set<String> = sourceLoader.load(source)
 
     companion object {
         private const val TAG = "ProxySearch"

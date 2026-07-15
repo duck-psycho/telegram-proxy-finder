@@ -43,22 +43,20 @@ fun HtmlText(
 private val ScrollView.textView: TextView
     get() = getChildAt(0) as TextView
 
-private fun createHtmlTextScrollView(context: Context): ScrollView =
-    ScrollView(context).apply {
-        isFillViewport = true
-        addView(
-            TextView(context).apply {
-                enableSelectableLinks()
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                )
-            },
-        )
-    }
+private fun createHtmlTextScrollView(context: Context): ScrollView = ScrollView(context).apply {
+    isFillViewport = true
+    addView(
+        TextView(context).apply {
+            enableSelectableLinks()
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        },
+    )
+}
 
-private fun String.fromHtml(): Spannable =
-    HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT) as Spannable
+private fun String.fromHtml(): Spannable = HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT) as Spannable
 
 @SuppressLint("ClickableViewAccessibility")
 private fun TextView.enableSelectableLinks() {
