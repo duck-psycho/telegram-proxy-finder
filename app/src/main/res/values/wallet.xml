@@ -1,0 +1,3 @@
+<resources>
+    <string name="wallet_html_content" translatable="false"><![CDATA[<b>BTC (Bitcoin)</b>: 178tovsfYQ8omdEPQSHAiH4jXBbBCWNacs<br/><br/><b>USDT, TRX (TRC20)</b>: TLD6QVdHhHNRDgRkYuqhUa2B9bkYgeRxmy<br/><br/><b>TON</b>: EQDuRyrzSzP8dqbMVNwEBvan_LPK44uRAIuAoT_VF2BXQtS6<br/><br/><b>ETH (ERC20)</b>: 0xF7556e3969e520A677e91E2bFb90EA88bD57EaD9<br/><br/><b>SOL (Solana)</b>: 3tGbXMzqTu7av7DjriY7wkWGEEHxshEZN9SbFP4qBi8v<br/><br/><b>LTC (Litecoin)</b>: LfmZvRPM4zb6EtwnAn9ATLo8kK4Rw7JxUK<br/><br/><b>BNB</b>: 0xF7556e3969e520A677e91E2bFb90EA88bD57EaD9]]></string>
+</resources>

@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Telegram Proxy Finder</string>
+    <string name="status_loading_sources">Загрузка источников…</string>
+    <string name="status_sources_progress">Источники %1$d/%2$d</string>
+    <string name="status_parsing">Парсинг и фильтрация…</string>
+    <string name="status_testing">Проверено %1$d из %2$d</string>
+    <string name="status_found_proxies">Найдено прокси: %1$d</string>
+    <string name="status_no_valid_proxies">Нет рабочих прокси</string>
+    <string name="status_error">Ошибка: %1$s</string>
+    <string name="error_unknown">неизвестно</string>
+    <string name="ping_ms_unit">мс</string>
+    <string name="sni">SNI: %1$s</string>
+    <string name="connect">Подключить</string>
+    <string name="copy">Копировать</string>
+    <string name="copied_to_clipboard">Скопировано в буфер обмена</string>
+    <string name="no_tg_app">Нет приложения для tg://</string>
+    <string name="update_available">Доступна новая версия: %1$s</string>
+    <string name="info">Информация</string>
+    <string name="back">Назад</string>
+    <string name="info_html_content"><![CDATA[Сообщить об ошибке или предложить улучшение:<br/><a href="https://github.com/duck-psycho/telegram-proxy-finder">https://github.com/duck-psycho/telegram-proxy-finder</a><br/><br/><b>Разработчик</b>: <a href="https://github.com/duck-psycho">Duckpsycho</a><br/><br/><b>Поддержать разработчика</b>:<br/>Boosty: <a href="https://boosty.to/duckpsycho">https://boosty.to/duckpsycho</a> или <a href="https://boosty.to/duckpsycho/donate">разовый донат</a><br/><br/>Обновления будут доступны на <a href="https://github.com/duck-psycho/telegram-proxy-finder/releases">GitHub Releases</a><br/><br/>]]></string>
+</resources>

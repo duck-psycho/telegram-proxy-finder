@@ -54,7 +54,8 @@ fun InfoScreen(
         },
     ) { innerPadding ->
         HtmlText(
-            html = stringResource(R.string.info_html_content),
+            html = stringResource(R.string.info_html_content) +
+                stringResource(R.string.wallet_html_content),
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
