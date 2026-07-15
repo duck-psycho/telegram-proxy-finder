@@ -65,8 +65,7 @@ class ProxySearchService(
                 return@channelFlow
             }
 
-            val proxiesToTest = validProxies.shuffled()
-            val totalToTest = proxiesToTest.size
+            val totalToTest = validProxies.size
             val nextIndex = AtomicInteger(0)
             val checkedCounter = AtomicInteger(0)
             val foundProxies = mutableMapOf<String, WorkingMtProtoProxy>()
@@ -88,7 +87,7 @@ class ProxySearchService(
                             val index = nextIndex.getAndIncrement()
                             if (index >= totalToTest) break
 
-                            val proxy = proxiesToTest[index]
+                            val proxy = validProxies[index]
                             val result = tester.test(proxy)
                             val checked = checkedCounter.incrementAndGet()
                             send(ProxySearchPhase.Testing(checked, totalToTest))
