@@ -4,7 +4,6 @@ import android.util.Log
 import com.duckpsycho.telegramproxyfinder.data.source.ProxySource
 import com.duckpsycho.telegramproxyfinder.domain.ProxySourceLoader
 import com.duckpsycho.telegramproxyfinder.domain.ProxyTester
-import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
 import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
 import com.duckpsycho.telegramproxyfinder.domain.parser.MtProtoProxyParser
@@ -34,33 +33,37 @@ class ProxySearchService(
         try {
             send(ProxySearchPhase.LoadingSources)
 
-            val rawLines = mutableSetOf<String>()
-            val linesMutex = Mutex()
             val loadedCounter = AtomicInteger(0)
             val totalSources = sources.size
 
-            coroutineScope {
-                sources.map { source ->
+            val loadedSources = coroutineScope {
+                sources.mapIndexed { sourceIndex, source ->
                     async(Dispatchers.IO) {
                         val lines = loadSource(source)
-                        val totalLines = linesMutex.withLock {
-                            rawLines.addAll(lines)
-                            rawLines.size
-                        }
                         val loaded = loadedCounter.incrementAndGet()
-                        Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines, total=$totalLines")
+                        Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines")
                         send(ProxySearchPhase.SourcesProgress(loaded, totalSources))
+                        sourceIndex to lines
                     }
-                }.awaitAll()
+                }.awaitAll().sortedBy { it.first }
             }
 
             send(ProxySearchPhase.Parsing)
-            val validProxies = rawLines
-                .mapNotNull(MtProtoProxyParser::parse)
-                .distinctBy(MtProtoProxy::identityKey)
+            val seenKeys = mutableSetOf<String>()
+            val validProxies = buildList {
+                for ((_, lines) in loadedSources) {
+                    for (line in lines) {
+                        val proxy = MtProtoProxyParser.parse(line) ?: continue
+                        if (seenKeys.add(proxy.identityKey())) {
+                            add(proxy)
+                        }
+                    }
+                }
+            }
 
+            val rawLineCount = loadedSources.sumOf { it.second.size }
             if (validProxies.isEmpty()) {
-                Log.w(TAG, "No valid proxies after filter (raw=${rawLines.size})")
+                Log.w(TAG, "No valid proxies after filter (raw=$rawLineCount)")
                 send(ProxySearchPhase.NoValidProxies)
                 return@channelFlow
             }
