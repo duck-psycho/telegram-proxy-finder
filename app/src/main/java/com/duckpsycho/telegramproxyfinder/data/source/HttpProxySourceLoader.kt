@@ -26,8 +26,7 @@ class HttpProxySourceLoader(
                 response.body?.string().orEmpty()
             }
         }.onSuccess { body ->
-            val lineCount = body.lineSequence().count { it.isNotBlank() }
-            Log.d(TAG, "Loaded $url ($lineCount lines)")
+            Log.d(TAG, "Loaded $url (${body.length} chars)")
         }.onFailure { error -> Log.e(TAG, "Failed to load $url", error) }
             .getOrNull()
     }

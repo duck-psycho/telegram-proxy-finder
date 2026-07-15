@@ -40,11 +40,11 @@ class ProxySearchService(
                     sources
                         .mapIndexed { sourceIndex, source ->
                             async(Dispatchers.IO) {
-                                val lines = loadSource(source)
+                                val body = loadSource(source)
                                 val loaded = loadedCounter.incrementAndGet()
-                                Log.d(TAG, "Source $loaded/$totalSources: +${lines.size} lines")
+                                Log.d(TAG, "Source $loaded/$totalSources: +${body?.length ?: 0} chars")
                                 send(ProxySearchPhase.SourcesProgress(loaded, totalSources))
-                                sourceIndex to lines
+                                sourceIndex to body
                             }
                         }.awaitAll()
                         .sortedBy { it.first }
@@ -54,9 +54,9 @@ class ProxySearchService(
             val seenKeys = mutableSetOf<String>()
             val validProxies =
                 buildList {
-                    for ((_, lines) in loadedSources) {
-                        for (line in lines) {
-                            val proxy = MtProtoProxyParser.parse(line) ?: continue
+                    for ((_, body) in loadedSources) {
+                        if (body.isNullOrBlank()) continue
+                        for (proxy in MtProtoProxyParser.parseAll(body)) {
                             if (seenKeys.add(proxy.identityKey())) {
                                 add(proxy)
                             }
@@ -64,9 +64,8 @@ class ProxySearchService(
                     }
                 }
 
-            val rawLineCount = loadedSources.sumOf { it.second.size }
             if (validProxies.isEmpty()) {
-                Log.w(TAG, "No valid proxies after filter (raw=$rawLineCount)")
+                Log.w(TAG, "No valid proxies after filter")
                 send(ProxySearchPhase.NoValidProxies)
                 return@channelFlow
             }
@@ -147,7 +146,7 @@ class ProxySearchService(
         }
     }
 
-    private suspend fun loadSource(source: ProxySource): Set<String> = sourceLoader.load(source)
+    private suspend fun loadSource(source: ProxySource): String? = sourceLoader.load(source)
 
     companion object {
         private const val TAG = "ProxySearch"

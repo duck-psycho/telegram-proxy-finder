@@ -14,8 +14,7 @@ class FileProxySourceCache(
         val file = cacheFile(url)
         if (!file.exists()) return@runCatching null
         val body = file.readText()
-        val lineCount = body.lineSequence().count { it.isNotBlank() }
-        Log.w(TAG, "Using cache for $url ($lineCount lines)")
+        Log.w(TAG, "Using cache for $url (${body.length} chars)")
         body
     }.onFailure { error -> Log.e(TAG, "Failed to read cache for $url", error) }
         .getOrNull()
