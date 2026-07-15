@@ -4,6 +4,9 @@ import android.net.Uri
 import com.duckpsycho.telegramproxyfinder.domain.model.MtProtoProxy
 
 object MtProtoProxyParser {
+    private const val MIN_PORT = 1
+    private const val MAX_PORT = 65535
+
     fun parse(rawLine: String): MtProtoProxy? {
         val line = rawLine.trim()
         if (line.isEmpty()) return null
@@ -20,7 +23,12 @@ object MtProtoProxyParser {
     private fun parseLink(link: String): MtProtoProxy? {
         val uri = runCatching { Uri.parse(normalize(link)) }.getOrNull() ?: return null
         val server = uri.getQueryParameter("server")?.trim().orEmpty()
-        val port = uri.getQueryParameter("port")?.trim()?.toIntOrNull() ?: return null
+        val port =
+            uri.getQueryParameter("port")
+                ?.trim()
+                ?.toIntOrNull()
+                ?.takeIf { it in MIN_PORT..MAX_PORT }
+                ?: return null
         val secret = uri.getQueryParameter("secret")?.trim().orEmpty()
         return buildProxy(server, port, secret)
     }
