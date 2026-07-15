@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.duckpsycho.telegramproxyfinder.data.source.CachingProxySourceLoader
-import com.duckpsycho.telegramproxyfinder.data.source.DefaultProxySourceUrls
 import com.duckpsycho.telegramproxyfinder.data.source.FileProxySourceCache
 import com.duckpsycho.telegramproxyfinder.data.source.HttpProxySourceLoader
+import com.duckpsycho.telegramproxyfinder.data.source.ProxySourceJsonStore
 import com.duckpsycho.telegramproxyfinder.data.tdlib.TdLibProxyTester
 import com.duckpsycho.telegramproxyfinder.domain.model.WorkingMtProtoProxy
 import com.duckpsycho.telegramproxyfinder.domain.model.identityKey
@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 
 class ProxyFinderViewModel(
     private val searchService: ProxySearchService,
+    private val sourceStore: ProxySourceJsonStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ProxyFinderUiState())
     val uiState: StateFlow<ProxyFinderUiState> = _uiState.asStateFlow()
@@ -49,7 +50,8 @@ class ProxyFinderViewModel(
                     )
                 }
 
-                searchService.search().collect { phase ->
+                val sources = sourceStore.loadSources()
+                searchService.search(sources).collect { phase ->
                     when (phase) {
                         ProxySearchPhase.LoadingSources -> {
                             updateStatus(SearchStatus.LoadingSources)
@@ -104,6 +106,7 @@ class ProxyFinderViewModel(
         fun factory(context: Context): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                val sourceStore = ProxySourceJsonStore.getInstance(context)
                 val searchService =
                     ProxySearchService(
                         sourceLoader =
@@ -112,9 +115,11 @@ class ProxyFinderViewModel(
                             cache = FileProxySourceCache(context),
                         ),
                         tester = TdLibProxyTester(context),
-                        sources = DefaultProxySourceUrls.sources,
                     )
-                return ProxyFinderViewModel(searchService = searchService) as T
+                return ProxyFinderViewModel(
+                    searchService = searchService,
+                    sourceStore = sourceStore,
+                ) as T
             }
         }
     }

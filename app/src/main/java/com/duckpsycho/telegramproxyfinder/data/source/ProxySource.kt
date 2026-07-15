@@ -1,5 +1,6 @@
 package com.duckpsycho.telegramproxyfinder.data.source
 
+import com.duckpsycho.telegramproxyfinder.domain.source.TelegramUsernameParser
 import java.net.URLEncoder
 
 enum class SourceType {
@@ -17,7 +18,7 @@ data class ProxySource(
         }
 
         SourceType.Telegram -> {
-            val username = value.trim().removePrefix("@")
+            val username = TelegramUsernameParser.parse(value)
             val encoded = URLEncoder.encode(username, "UTF-8")
             "$TELEGRAM_API_BASE?username=$encoded"
         }

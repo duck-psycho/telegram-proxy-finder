@@ -16,6 +16,32 @@
     <string name="no_tg_app">Нет приложения для tg://</string>
     <string name="update_available">Доступна новая версия: %1$s</string>
     <string name="info">Информация</string>
+    <string name="settings">Настройки</string>
+    <string name="app_version">Версия %1$s</string>
     <string name="back">Назад</string>
+    <string name="sources_title">Источники</string>
+    <string name="no_sources">Нет источников</string>
+    <string name="source_type_telegram">Telegram</string>
+    <string name="source_type_web">Web</string>
+    <string name="source_created_at">Добавлен: %1$s</string>
+    <string name="source_proxy_count">Найдено прокси: %1$d</string>
+    <string name="source_proxy_count_loading">Прокси: …</string>
+    <string name="source_proxy_count_unknown">Прокси: —</string>
+    <string name="delete_source">Удалить источник</string>
+    <string name="delete_source_title">Удалить источник?</string>
+    <string name="delete_source_message">Удалить %1$s из списка?</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+    <string name="reorder_source">Переместить источник</string>
+    <string name="add_source">Добавить источник</string>
+    <string name="add">Добавить</string>
+    <string name="verify_source">Проверить</string>
+    <string name="source_verify_failed">Не удалось загрузить источник</string>
+    <string name="source_duplicate_error">Этот источник уже есть в списке</string>
+    <string name="source_type_label">Тип источника</string>
+    <string name="source_value_label_telegram">Публичный канал</string>
+    <string name="source_value_label_web">Адрес</string>
+    <string name="source_value_hint_telegram">channel, @channel или t.me/channel</string>
+    <string name="source_value_hint_web">https://example.com/proxies.txt</string>
     <string name="info_html_content"><![CDATA[Сообщить об ошибке или предложить улучшение:<br/><a href="https://github.com/duck-psycho/telegram-proxy-finder">https://github.com/duck-psycho/telegram-proxy-finder</a><br/><br/><b>Разработчик</b>: <a href="https://github.com/duck-psycho">Duckpsycho</a><br/><br/><b>Поддержать разработчика</b>:<br/>Boosty: <a href="https://boosty.to/duckpsycho">https://boosty.to/duckpsycho</a> или <a href="https://boosty.to/duckpsycho/donate">разовый донат</a><br/><br/>Обновления будут доступны на <a href="https://github.com/duck-psycho/telegram-proxy-finder/releases">GitHub Releases</a><br/><br/>]]></string>
 </resources>

@@ -94,6 +94,32 @@ class MtProtoProxyParserTest {
     }
 
     @Test
+    fun parseAll_extractsLinkWithUnicodeEscapedAmpersands() {
+        val proxies =
+            MtProtoProxyParser.parseAll(
+                """tg://proxy?server=example.com\u0026port=443\u0026secret=abc123""",
+            )
+
+        assertEquals(1, proxies.size)
+        assertEquals("example.com", proxies[0].server)
+        assertEquals(443, proxies[0].port)
+        assertEquals("abc123", proxies[0].secret)
+    }
+
+    @Test
+    fun parseAll_extractsLinkWithHtmlEscapedAmpersands() {
+        val proxies =
+            MtProtoProxyParser.parseAll(
+                "tg://proxy?server=example.com&amp;port=443&amp;secret=abc123",
+            )
+
+        assertEquals(1, proxies.size)
+        assertEquals("example.com", proxies[0].server)
+        assertEquals(443, proxies[0].port)
+        assertEquals("abc123", proxies[0].secret)
+    }
+
+    @Test
     fun parse_returnsNullForInvalidLine() {
         assertNull(MtProtoProxyParser.parse("# just a comment"))
         assertNull(MtProtoProxyParser.parse(""))

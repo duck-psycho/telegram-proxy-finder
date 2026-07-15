@@ -51,11 +51,18 @@ object MtProtoProxyParser {
             key to value
         }.toMap()
 
-    private fun normalize(link: String): String = if (link.startsWith("https://", ignoreCase = true)) {
-        link.replaceFirst("https://t.me/proxy", "tg://proxy", ignoreCase = true)
-    } else {
-        link
+    private fun normalize(link: String): String {
+        val decoded = decodeQuerySeparators(link)
+        return if (decoded.startsWith("https://", ignoreCase = true)) {
+            decoded.replaceFirst("https://t.me/proxy", "tg://proxy", ignoreCase = true)
+        } else {
+            decoded
+        }
     }
+
+    private fun decodeQuerySeparators(text: String): String = text
+        .replace("\\u0026", "&", ignoreCase = true)
+        .replace("&amp;", "&", ignoreCase = true)
 
     private fun buildProxy(
         server: String,

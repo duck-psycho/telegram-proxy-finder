@@ -24,10 +24,9 @@ import java.util.concurrent.atomic.AtomicInteger
 class ProxySearchService(
     private val sourceLoader: ProxySourceLoader,
     private val tester: ProxyTester,
-    private val sources: List<ProxySource>,
     private val poolSize: Int = DEFAULT_POOL_SIZE,
 ) {
-    fun search(): Flow<ProxySearchPhase> = channelFlow {
+    fun search(sources: List<ProxySource>): Flow<ProxySearchPhase> = channelFlow {
         var workersPrepared = 0
         try {
             send(ProxySearchPhase.LoadingSources)
